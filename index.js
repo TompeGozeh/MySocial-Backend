@@ -18,7 +18,7 @@ app.use("/api/posts", postsRouter);
 const connectToDB = async () => {
   try {
     await connection.connect();
-    console.log("✅ Conectado a MySQL");
+    console.log("✅ Conectado a MySQL correctamente");
   } catch (err) {
     console.error("❌ Error conectando a MySQL:", err);
   }
@@ -29,5 +29,5 @@ connectToDB();
 // 🔹 Puerto dinámico (Render lo asigna automáticamente)
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(🚀 Servidor backend corriendo en el puerto ${PORT});
+  console.log(Servidor backend corriendo en el puerto ${PORT});
 });
