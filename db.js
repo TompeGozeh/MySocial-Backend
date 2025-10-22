@@ -1,10 +1,16 @@
-import mysql from "mysql2/promise";
+import mongoose from "mongoose";
 
-export const connection = await mysql.createConnection({
-  host: "localhost",
-  user: "root",
-  password: "",
-  database: "minitw",
-});
+const URI = "mongodb+srv://emersoncastro1411_db_user:3152871041@minitw.0i179fs.mongodb.net/?retryWrites=true&w=majority&appName=minitw";
 
-console.log("✅ Conectado a la base de datos MySQL (XAMPP)");
+export const connectDB = async () => {
+  try {
+    await mongoose.connect(URI, {
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+    });
+    console.log("✅ Conectado a MongoDB Atlas correctamente");
+  } catch (error) {
+    console.error("❌ Error al conectar con MongoDB:", error);
+    process.exit(1);
+  }
+};

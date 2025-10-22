@@ -1,6 +1,7 @@
 import express from "express";
-import { connection } from "../db.js";
 import jwt from "jsonwebtoken";
+import Post from "../models/Post.js";
+import User from "../models/User.js";
 
 const router = express.Router();
 const SECRET_KEY = "clave_super_secreta";
@@ -16,7 +17,7 @@ function verifyToken(req, res, next) {
   const token = authHeader.split(" ")[1];
   try {
     const decoded = jwt.verify(token, SECRET_KEY);
-    req.user = decoded; // ✅ ahora contiene directamente id, username, display_name
+    req.user = decoded; // contiene { id, username }
     next();
   } catch (error) {
     console.error("❌ Token inválido:", error);
@@ -29,14 +30,11 @@ function verifyToken(req, res, next) {
 ============================================ */
 router.get("/feed", async (req, res) => {
   try {
-    const [rows] = await connection.query(`
-      SELECT p.id, p.content, p.created_at,
-             u.username, u.display_name
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      ORDER BY p.created_at DESC
-    `);
-    res.json(rows);
+    const posts = await Post.find()
+      .populate("userId", "username")
+      .sort({ createdAt: -1 });
+
+    res.json(posts);
   } catch (error) {
     console.error("❌ Error obteniendo publicaciones:", error);
     res.status(500).json({ message: "Error al obtener publicaciones" });
@@ -48,31 +46,20 @@ router.get("/feed", async (req, res) => {
 ============================================ */
 router.post("/", verifyToken, async (req, res) => {
   try {
-    const { content } = req.body;
+    const { content, image } = req.body;
     const userId = req.user.id;
 
     if (!content?.trim()) {
       return res.status(400).json({ message: "El contenido es obligatorio" });
     }
 
-    // Insertar el nuevo post
-    const [result] = await connection.query(
-      "INSERT INTO posts (user_id, content, created_at) VALUES (?, ?, NOW())",
-      [userId, content]
-    );
+    const post = new Post({ content, image, userId });
+    await post.save();
 
-    // Recuperar la publicación recién creada con datos del usuario
-    const [newPost] = await connection.query(
-      `
-      SELECT p.id, p.content, p.created_at, u.username, u.display_name
-      FROM posts p
-      JOIN users u ON p.user_id = u.id
-      WHERE p.id = ?
-      `,
-      [result.insertId]
-    );
+    // Recuperar la publicación con datos del usuario
+    const newPost = await Post.findById(post._id).populate("userId", "username");
 
-    res.json({ success: true, post: newPost[0] });
+    res.json({ success: true, post: newPost });
   } catch (error) {
     console.error("❌ Error creando publicación:", error);
     res.status(500).json({ message: "Error al crear publicación" });

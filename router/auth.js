@@ -1,7 +1,7 @@
 import express from "express";
-import { connection } from "../db.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import User from "../models/User.js";
 
 const router = express.Router();
 const SECRET_KEY = "clave_super_secreta";
@@ -17,12 +17,23 @@ router.post("/register", async (req, res) => {
       return res.status(400).json({ error: "Faltan datos obligatorios" });
     }
 
+    // Verificar si el usuario ya existe
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ error: "El usuario ya existe" });
+    }
+
+    // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await connection.query(
-      "INSERT INTO users (username, password, display_name) VALUES (?, ?, ?)",
-      [username, hashedPassword, display_name]
-    );
+    // Crear usuario
+    const newUser = new User({
+      username,
+      password: hashedPassword,
+      display_name,
+    });
+
+    await newUser.save();
 
     res.json({ message: "✅ Usuario registrado correctamente" });
   } catch (error) {
@@ -38,26 +49,20 @@ router.post("/login", async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    const [rows] = await connection.query(
-      "SELECT * FROM users WHERE username = ?",
-      [username]
-    );
-
-    if (rows.length === 0) {
+    const user = await User.findOne({ username });
+    if (!user) {
       return res.status(400).json({ error: "Usuario no encontrado" });
     }
 
-    const user = rows[0];
     const passwordMatch = await bcrypt.compare(password, user.password);
-
     if (!passwordMatch) {
       return res.status(400).json({ error: "Contraseña incorrecta" });
     }
 
-    // ✅ el token ahora incluye los datos del usuario directamente
+    // Crear token JWT
     const token = jwt.sign(
       {
-        id: user.id,
+        id: user._id,
         username: user.username,
         display_name: user.display_name,
       },
@@ -69,7 +74,7 @@ router.post("/login", async (req, res) => {
       message: "✅ Login exitoso",
       token,
       user: {
-        id: user.id,
+        id: user._id,
         username: user.username,
         display_name: user.display_name,
       },
