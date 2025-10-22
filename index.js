@@ -32,6 +32,10 @@ try {
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postsRouter);
 
+app.get("/api/test", (req, res) => {
+  res.send("✅ Servidor funcionando correctamente en Render");
+});
+
 // =====================================
 // 🟢 INICIAR SERVIDOR
 const PORT = process.env.PORT || 4000;
