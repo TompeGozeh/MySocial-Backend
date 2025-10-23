@@ -1,8 +1,13 @@
 import mongoose from "mongoose";
 
-const URI = "mongodb+srv://emersoncastro1411_db_user:3152871041@minitw.0i179fs.mongodb.net/?retryWrites=true&w=majority&appName=minitw";
-
 export const connectDB = async () => {
+  const URI = process.env.MONGO_URI;
+
+  if (!URI) {
+    console.error("❌ No se encontró la variable MONGO_URI en Render");
+    process.exit(1);
+  }
+
   try {
     await mongoose.connect(URI, {
       useNewUrlParser: true,
@@ -10,7 +15,7 @@ export const connectDB = async () => {
     });
     console.log("✅ Conectado a MongoDB Atlas correctamente");
   } catch (error) {
-    console.error("❌ Error al conectar con MongoDB:", error);
+    console.error("❌ Error al conectar con MongoDB:", error.message);
     process.exit(1);
   }
 };
